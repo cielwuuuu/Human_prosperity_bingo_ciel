@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>丰荣 Bingo Plus</title>
+  <meta name="theme-color" content="#7ea68d" />
+  <style>
+    :root {
+      --bg: #f4f7f1;
+      --panel: rgba(255,255,255,.82);
+      --card: #ffffff;
+      --text: #2d3a31;
+      --muted: #77867b;
+      --accent: #8db79a;
+      --accent-2: #e8b97e;
+      --checked: #98cfab;
+      --free: #fff0d8;
+      --danger: #e27d7d;
+      --shadow: 0 10px 30px rgba(55, 84, 63, .12);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(174, 215, 191, .35), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(255, 219, 176, .32), transparent 28%),
+        var(--bg);
+      padding: max(16px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+      overflow-x: hidden;
+    }
+
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.65);
+      border-radius: 28px;
+      padding: 18px 18px 14px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 5vw, 34px);
+      line-height: 1.1;
+    }
+
+    .sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .badge {
+      background: #fff;
+      border: 1px solid rgba(126,166,141,.25);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.04);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 16px;
+      margin-top: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.65);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .grid-wrap {
+      position: relative;
+    }
+
+    .bingo-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .item {
+      min-height: 74px;
+      aspect-ratio: 1 / 1;
+      background: var(--card);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: clamp(12px, 2.6vw, 15px);
+      line-height: 1.25;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0,0,0,.06);
+      padding: 8px;
+      user-select: none;
+      transition: transform .18s ease, box-shadow .18s ease, background-color .25s ease;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid transparent;
+    }
+
+    .item:active { transform: scale(.98); }
+    .item:hover { transform: translateY(-1px); }
+
+    .item.checked {
+      background: linear-gradient(180deg, #b5e2c1, var(--checked));
+      color: white;
+      border-color: rgba(255,255,255,.45);
+    }
+
+    .item.free {
+      background: linear-gradient(180deg, #fff6e8, var(--free));
+      font-weight: 700;
+    }
+
+    .item.bingo-hit {
+      animation: glow 1s ease infinite alternate;
+      border-color: rgba(255,255,255,.85);
+    }
+
+    @keyframes glow {
+      from { box-shadow: 0 0 0 rgba(255,255,255,0), 0 8px 18px rgba(0,0,0,.06); }
+      to { box-shadow: 0 0 0 6px rgba(255,255,255,.2), 0 10px 22px rgba(77, 165, 110, .26); }
+    }
+
+    .ripple {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.55);
+      transform: translate(-50%, -50%) scale(0);
+      animation: ripple .55s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes ripple {
+      to { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button, .button-like, textarea, input {
+      font: inherit;
+    }
+
+    button {
+      border: none;
+      background: white;
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(0,0,0,.06);
+      transition: transform .15s ease, opacity .15s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: scale(.98); }
+    .primary { background: var(--accent); color: white; }
+    .secondary { background: #fff8ef; }
+    .danger { background: #fff2f2; color: #8a4444; }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 17px;
+    }
+
+    .tiny {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,.85);
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 6px 14px rgba(0,0,0,.04);
+    }
+
+    .stat-card strong {
+      display: block;
+      font-size: 24px;
+      margin-top: 2px;
+    }
+
+    .achievement-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .achievement {
+      border-radius: 16px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.8);
+      border: 1px solid rgba(126,166,141,.18);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .achievement.locked { opacity: .52; }
+    .achievement span:last-child { white-space: nowrap; }
+
+    .editor-area {
+      width: 100%;
+      min-height: 240px;
+      border-radius: 16px;
+      border: 1px solid rgba(126,166,141,.18);
+      background: rgba(255,255,255,.9);
+      padding: 12px;
+      resize: vertical;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,35,29,.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal.open { display: flex; }
+
+    .modal-card {
+      width: min(720px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      background: #f9fbf8;
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%) translateY(18px);
+      background: rgba(45,58,49,.94);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s ease;
+      z-index: 100;
+      text-align: center;
+      max-width: calc(100vw - 28px);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .confetti {
+      position: fixed;
+      top: -12px;
+      width: 10px;
+      height: 16px;
+      opacity: .9;
+      animation: fall linear forwards;
+      z-index: 80;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(560deg);
+        opacity: .95;
+      }
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 760px) {
+      .layout { grid-template-columns: 1fr; }
+      .hero { position: static; }
+      .bingo-grid { gap: 8px; }
+      .item { min-height: 64px; border-radius: 14px; }
+      .stat-grid { grid-template-columns: repeat(4, 1fr); }
+      .stat-card strong { font-size: 18px; }
+    }
+
+    @media (max-width: 520px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>🌿 人类丰荣 Bingo Plus</h1>
+          <div class="sub">点一下打卡 · 长按快速改单格 · 支持整板自定义 · 有连线高亮、成就、连续天数和一点小庆祝</div>
+        </div>
+        <div class="badge-row">
+          <div class="badge" id="todayBadge">今天：--</div>
+          <div class="badge" id="progressBadge">进度：0 / 25</div>
+          <div class="badge" id="lineBadge">Bingo：0 条</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="panel grid-wrap">
+        <h2 class="section-title">今日面板</h2>
+        <div class="bingo-grid" id="bingoGrid"></div>
+        <div class="controls">
+          <button class="primary" id="editAllBtn">编辑整张 Bingo</button>
+          <button class="secondary" id="shareBtn">导出数据</button>
+          <button class="secondary" id="importBtn">导入数据</button>
+          <button class="danger" id="resetChecksBtn">重置今日打卡</button>
+        </div>
+        <div class="footer-note">
+          不托管的话，这个文件本身就能在电脑和手机浏览器里打开；但数据默认保存在各自设备里。想跨设备同步，又不想部署服务器，就用“导出数据 / 导入数据”这两个按钮手动同步。
+        </div>
+      </section>
+
+      <aside class="panel">
+        <h2 class="section-title">丰荣统计</h2>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="tiny">今日打卡</div><strong id="checkedCount">0</strong></div>
+          <div class="stat-card"><div class="tiny">连线数</div><strong id="bingoCount">0</strong></div>
+          <div class="stat-card"><div class="tiny">连续天数</div><strong id="streakCount">0</strong></div>
+          <div class="stat-card"><div class="tiny">完成日</div><strong id="perfectDays">0</strong></div>
+        </div>
+
+        <h2 class="section-title" style="margin-top:16px;">成就</h2>
+        <div class="achievement-list" id="achievementList"></div>
+        <div class="tiny" style="margin-top:10px;">规则：完成至少 1 条 Bingo 记为“有效完成日”；25 格全满是“完美丰荣”。</div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="modal" id="editorModal">
+    <div class="modal-card">
+      <h2 class="section-title">编辑 Bingo 格子</h2>
+      <div class="tiny">每行一个项目，共 25 行。第 13 格建议写 FREE。少于 25 行会自动补空格，多于 25 行会截断。</div>
+      <textarea class="editor-area" id="editorArea"></textarea>
+      <div class="controls">
+        <button class="primary" id="saveEditorBtn">保存</button>
+        <button class="secondary" id="fillDefaultBtn">恢复默认</button>
+        <button id="closeEditorBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const DEFAULT_TASKS = [
+      '日语', '看书', '打游戏', '看电影', '洗头',
+      '补剂', '倒垃圾', '收拾房间', '洗碗', '整理衣服',
+      '6h+睡眠', '采购食材', 'FREE', '吃饭', '营养均衡',
+      '回邮件', '写论文', '学习', '出门', '写作',
+      '创作', '开窗', '晒太阳', '骗水', '人类丰荣'
+    ];
+
+    const STORAGE_KEY = 'bingoPlusData_v1';
+    const ACHIEVEMENTS = [
+      { id: 'first-check', label: '初次丰荣', desc: '第一次点亮一个格子', test: s => s.totalChecksEver >= 1 },
+      { id: 'first-bingo', label: '第一条线', desc: '第一次连成 Bingo', test: s => s.bestBingoLines >= 1 },
+      { id: 'triple-bingo', label: '三线开花', desc: '单日达到 3 条 Bingo', test: s => s.bestBingoLines >= 3 },
+      { id: 'streak-3', label: '稳定活着', desc: '连续 3 天有效完成', test: s => s.bestStreak >= 3 },
+      { id: 'streak-7', label: '丰荣周', desc: '连续 7 天有效完成', test: s => s.bestStreak >= 7 },
+      { id: 'perfect-day', label: '完美丰荣', desc: '完成一次 25 / 25', test: s => s.perfectDays >= 1 },
+      { id: 'perfect-3', label: '丰荣惯犯', desc: '累计 3 次 25 / 25', test: s => s.perfectDays >= 3 },
+    ];
+
+    const grid = document.getElementById('bingoGrid');
+    const toast = document.getElementById('toast');
+    const editorModal = document.getElementById('editorModal');
+    const editorArea = document.getElementById('editorArea');
+
+    function todayStr(date = new Date()) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function dateDiffDays(a, b) {
+      const A = new Date(a + 'T00:00:00');
+      const B = new Date(b + 'T00:00:00');
+      return Math.round((B - A) / 86400000);
+    }
+
+    function normalizeTasks(arr) {
+      const out = Array.isArray(arr) ? arr.slice(0, 25) : [];
+      while (out.length < 25) out.push('');
+      if (!out[12] || out[12].trim() === '') out[12] = 'FREE';
+      return out;
+    }
+
+    function defaultState() {
+      return {
+        tasks: DEFAULT_TASKS.slice(),
+        checks: Array(25).fill(false),
+        lastPlayedDate: todayStr(),
+        streak: 0,
+        bestStreak: 0,
+        perfectDays: 0,
+        totalChecksEver: 0,
+        bestBingoLines: 0,
+        achievementUnlocks: {},
+        completedDates: {},
+        lastCompletionAwardedDate: null,
+        lastPerfectAwardedDate: null,
+        settings: { vibrate: true, animations: true }
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        const merged = { ...defaultState(), ...(raw || {}) };
+        merged.tasks = normalizeTasks(merged.tasks);
+        if (!Array.isArray(merged.checks) || merged.checks.length !== 25) merged.checks = Array(25).fill(false);
+        return merged;
+      } catch {
+        return defaultState();
+      }
+    }
+
+    let state = loadState();
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function vibrate(pattern = 36) {
+      if (state.settings?.vibrate && navigator.vibrate) navigator.vibrate(pattern);
+    }
+
+    function maybeRollOverDay() {
+      const today = todayStr();
+      if (state.lastPlayedDate !== today) {
+        state.checks = Array(25).fill(false);
+        state.lastPlayedDate = today;
+        saveState();
+        showToast('新的一天，Bingo 已自动重置 ✨');
+      }
+    }
+
+    function getCompletedCount() {
+      return state.checks.filter(Boolean).length;
+    }
+
+    function getWinningLines(checks) {
+      const lines = [
+        [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+        [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+        [0,6,12,18,24],[4,8,12,16,20]
+      ];
+      return lines.filter(line => line.every(i => checks[i]));
+    }
+
+    function createRipple(el, e) {
+      if (!state.settings?.animations) return;
+      const rect = el.getBoundingClientRect();
+      const x = (e?.clientX || rect.left + rect.width / 2) - rect.left;
+      const y = (e?.clientY || rect.top + rect.height / 2) - rect.top;
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      r.style.left = x + 'px';
+      r.style.top = y + 'px';
+      el.appendChild(r);
+      setTimeout(() => r.remove(), 600);
+    }
+
+    function dropConfetti(count = 28) {
+      if (!state.settings?.animations) return;
+      const colors = ['#9bd3ae', '#ffd79f', '#b7d7ff', '#f7b1c2', '#d4c1ff'];
+      for (let i = 0; i < count; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+        c.style.transform = `translateY(0) rotate(${Math.random()*360}deg)`;
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4500);
+      }
+    }
+
+    function awardDailyProgress() {
+      const today = todayStr();
+      const lineCount = getWinningLines(state.checks).length;
+      const completed = getCompletedCount();
+
+      if (lineCount >= 1 && state.lastCompletionAwardedDate !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yStr = todayStr(yesterday);
+        if (state.completedDates[yStr]) state.streak += 1;
+        else state.streak = 1;
+        state.completedDates[today] = { lineCount, completed };
+        state.lastCompletionAwardedDate = today;
+        state.bestStreak = Math.max(state.bestStreak, state.streak);
+        showToast(`Bingo 达成！连续 ${state.streak} 天 ✨`);
+        vibrate([40, 50, 70]);
+        dropConfetti(26);
+      }
+
+      if (completed === 25 && state.lastPerfectAwardedDate !== today) {
+        state.perfectDays += 1;
+        state.lastPerfectAwardedDate = today;
+        showToast('25 / 25，完美丰荣！');
+        vibrate([80, 40, 80]);
+        dropConfetti(40);
+      }
+
+      state.bestBingoLines = Math.max(state.bestBingoLines, lineCount);
+    }
+
+    function updateAchievements() {
+      let unlockedNow = [];
+      ACHIEVEMENTS.forEach(a => {
+        if (a.test(state) && !state.achievementUnlocks[a.id]) {
+          state.achievementUnlocks[a.id] = todayStr();
+          unlockedNow.push(a.label);
+        }
+      });
+      const list = document.getElementById('achievementList');
+      list.innerHTML = '';
+      ACHIEVEMENTS.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'achievement' + (state.achievementUnlocks[a.id] ? '' : ' locked');
+        item.innerHTML = `<div><strong>${state.achievementUnlocks[a.id] ? '🏆 ' : '🔒 '}${a.label}</strong><div class="tiny">${a.desc}</div></div><span>${state.achievementUnlocks[a.id] || '未解锁'}</span>`;
+        list.appendChild(item);
+      });
+      if (unlockedNow.length) {
+        showToast(`解锁成就：${unlockedNow[0]}`);
+        dropConfetti(18);
+      }
+    }
+
+    function updateHeader() {
+      const completed = getCompletedCount();
+      const lines = getWinningLines(state.checks).length;
+      document.getElementById('todayBadge').textContent = '今天：' + todayStr();
+      document.getElementById('progressBadge').textContent = `进度：${completed} / 25`;
+      document.getElementById('lineBadge').textContent = `Bingo：${lines} 条`;
+      document.getElementById('checkedCount').textContent = completed;
+      document.getElementById('bingoCount').textContent = lines;
+      document.getElementById('streakCount').textContent = state.streak;
+      document.getElementById('perfectDays').textContent = state.perfectDays;
+    }
+
+    function draw() {
+      maybeRollOverDay();
+      grid.innerHTML = '';
+      const winningLines = getWinningLines(state.checks);
+      const hitSet = new Set(winningLines.flat());
+
+      state.tasks.forEach((text, i) => {
+        const el = document.createElement('div');
+        const isFree = String(text).trim().toUpperCase() === 'FREE';
+        el.className = 'item'
+          + (isFree ? ' free' : '')
+          + (state.checks[i] ? ' checked' : '')
+          + (hitSet.has(i) ? ' bingo-hit' : '');
+        el.textContent = text || '空白';
+
+        el.addEventListener('click', (e) => {
+          state.checks[i] = !state.checks[i];
+          if (state.checks[i]) state.totalChecksEver += 1;
+          createRipple(el, e);
+          vibrate(35);
+          awardDailyProgress();
+          updateAchievements();
+          saveState();
+          updateHeader();
+          draw();
+        });
+
+        let pressTimer = null;
+        let longPressTriggered = false;
+
+        const startPress = () => {
+          longPressTriggered = false;
+          pressTimer = window.setTimeout(() => {
+            longPressTriggered = true;
+            const val = prompt('修改这个格子的内容', state.tasks[i]);
+            if (val !== null) {
+              state.tasks[i] = val.trim() || '空白';
+              saveState();
+              draw();
+              showToast('已修改格子内容');
+            }
+          }, 650);
+        };
+
+        const cancelPress = () => clearTimeout(pressTimer);
+
+        el.addEventListener('mousedown', startPress);
+        el.addEventListener('touchstart', startPress, { passive: true });
+        el.addEventListener('mouseup', cancelPress);
+        el.addEventListener('mouseleave', cancelPress);
+        el.addEventListener('touchend', cancelPress);
+        el.addEventListener('touchcancel', cancelPress);
+
+        grid.appendChild(el);
+      });
+
+      updateHeader();
+    }
+
+    function openEditor() {
+      editorArea.value = state.tasks.join('\n');
+      editorModal.classList.add('open');
+    }
+
+    function closeEditor() {
+      editorModal.classList.remove('open');
+    }
+
+    function saveEditor() {
+      const lines = editorArea.value.split(/\r?\n/).map(s => s.trim());
+      state.tasks = normalizeTasks(lines);
+      saveState();
+      closeEditor();
+      draw();
+      showToast('整张 Bingo 已更新');
+    }
+
+    function resetChecks() {
+      if (!confirm('重置今天的打卡？')) return;
+      state.checks = Array(25).fill(false);
+      saveState();
+      draw();
+      showToast('今日打卡已重置');
+    }
+
+    function exportData() {
+      const payload = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+      const content = `BINGO_PLUS_DATA\n${payload}`;
+      navigator.clipboard?.writeText(content).then(() => {
+        showToast('数据已复制，可发到手机或电脑导入');
+      }).catch(() => {
+        prompt('复制下面这段数据，用另一台设备导入：', content);
+      });
+    }
+
+    function importData() {
+      const raw = prompt('把导出的数据粘贴到这里');
+      if (!raw) return;
+      try {
+        const cleaned = raw.replace(/^BINGO_PLUS_DATA\s*/, '').trim();
+        const parsed = JSON.parse(decodeURIComponent(escape(atob(cleaned))));
+        state = { ...defaultState(), ...parsed };
+        state.tasks = normalizeTasks(state.tasks);
+        saveState();
+        draw();
+        updateAchievements();
+        showToast('导入成功');
+      } catch (e) {
+        alert('导入失败，检查一下是不是完整复制了。');
+      }
+    }
+
+    document.getElementById('editAllBtn').addEventListener('click', openEditor);
+    document.getElementById('closeEditorBtn').addEventListener('click', closeEditor);
+    document.getElementById('saveEditorBtn').addEventListener('click', saveEditor);
+    document.getElementById('fillDefaultBtn').addEventListener('click', () => {
+      editorArea.value = DEFAULT_TASKS.join('\n');
+    });
+    document.getElementById('resetChecksBtn').addEventListener('click', resetChecks);
+    document.getElementById('shareBtn').addEventListener('click', exportData);
+    document.getElementById('importBtn').addEventListener('click', importData);
+    editorModal.addEventListener('click', (e) => { if (e.target === editorModal) closeEditor(); });
+
+    maybeRollOverDay();
+    awardDailyProgress();
+    updateAchievements();
+    saveState();
+    draw();
+  </script>
+</body>
+</html>
