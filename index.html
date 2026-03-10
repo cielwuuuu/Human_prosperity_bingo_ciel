@@ -1132,68 +1132,79 @@
       buildExportCard();
     }
 
-    async function downloadExportCard() {
+async function downloadExportCard() {
+
   const node = document.getElementById('exportCard');
 
   try {
+
     showToast('正在生成图片...');
     buildExportCard();
 
-    await new Promise(resolve => setTimeout(resolve, 120));
+    await new Promise(r => setTimeout(r, 120));
 
     const canvas = await html2canvas(node, {
-      backgroundColor: null,
-      scale: Math.min(window.devicePixelRatio || 1, 2),
-      useCORS: true,
-      logging: false
+      backgroundColor: "#f4f7f1",
+      scale: 2,
+      useCORS: true
     });
 
-    const safeName = (cur().name || 'bingo').replace(/[\\/:*?"<>|]/g, '_');
-    const date = getTodayKey();
-    const filename = `${safeName}_${date}.png`;
+    const dataURL = canvas.toDataURL("image/png");
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        showToast('导出失败，请重试');
-        return;
-      }
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-      const file = new File([blob], filename, { type: 'image/png' });
+    if (isMobile) {
 
-      // 手机上优先走系统分享
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: '人类丰荣 Bingo',
-            text: '导出我的 Bingo 卡片'
-          });
-          showToast('图片已生成');
-          return;
-        } catch (err) {
-          // 用户取消分享时不报错，走后备逻辑
-          console.log('share cancelled or failed', err);
+      // 手机上：新页面显示图片，长按保存
+      const w = window.open();
+      w.document.write(`
+        <html>
+        <head>
+        <title>Bingo Export</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+        body{
+          margin:0;
+          background:#000;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          height:100vh;
         }
-      }
+        img{
+          max-width:100%;
+          height:auto;
+        }
+        </style>
+        </head>
+        <body>
+        <img src="${dataURL}">
+        </body>
+        </html>
+      `);
 
-      // 电脑 / 不支持分享时，走下载
-      const url = URL.createObjectURL(blob);
+      showToast("长按图片即可保存");
+
+    } else {
+
+      // 电脑端直接下载
       const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
+
+      const safeName = (cur().name || 'bingo').replace(/[\\/:*?"<>|]/g, '_');
+
+      link.download = `${safeName}_${getTodayKey()}.png`;
+      link.href = dataURL;
       link.click();
-      link.remove();
 
-      // iOS 有时不支持 download，就新开图片
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast("已导出图片");
 
-      showToast('图片已生成');
-    }, 'image/png');
+    }
 
   } catch (e) {
+
     console.error(e);
-    showToast('导出失败，请重试');
+    showToast("导出失败");
+
   }
 }
 
