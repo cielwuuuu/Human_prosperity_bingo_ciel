@@ -544,7 +544,7 @@
   </button>
   <div class="notice-body" id="noticeBody">
     <p><strong>v2.4</strong></p>
-    <p>修复了无法删除任务池文本的 bug。</p>
+    <p>修复了无法删除任务池文本与图片导出的 bug。</p>
     <p><strong>Tips：</strong></p>
     <p>• 可以拖拽 tag 或 bingo 格进行编辑</p>
     <p>• iOS 用户可以通过 Safari 打开网页，点击分享键，选择添加至主屏幕，以更便捷地访问本页面，体验接近小组件或 App</p>
@@ -1133,78 +1133,159 @@
     }
 
 async function downloadExportCard() {
-
   const node = document.getElementById('exportCard');
 
   try {
-
-    showToast('正在生成图片...');
+    showToast('正在生成...');
     buildExportCard();
 
     await new Promise(r => setTimeout(r, 120));
 
-    const canvas = await html2canvas(node, {
-      backgroundColor: "#f4f7f1",
-      scale: 2,
-      useCORS: true
+    // 离屏 4:5 画布
+    const offscreen = document.createElement('div');
+    offscreen.style.position = 'fixed';
+    offscreen.style.left = '-99999px';
+    offscreen.style.top = '0';
+    offscreen.style.width = '1080px';
+    offscreen.style.height = '1350px';
+    offscreen.style.margin = '0';
+    offscreen.style.padding = '40px';
+    offscreen.style.boxSizing = 'border-box';
+    offscreen.style.background = '#f4f7f1';
+    offscreen.style.zIndex = '-1';
+    offscreen.style.overflow = 'hidden';
+
+    // 克隆原导出卡片
+    const clone = node.cloneNode(true);
+    clone.style.width = '100%';
+    clone.style.height = '100%';
+    clone.style.maxWidth = 'none';
+    clone.style.borderRadius = '32px';
+    clone.style.boxSizing = 'border-box';
+    clone.style.padding = '32px';
+    clone.style.display = 'flex';
+    clone.style.flexDirection = 'column';
+    clone.style.justifyContent = 'space-between';
+    clone.style.overflow = 'hidden';
+
+    // 单独调整导出字体和布局
+    clone.querySelectorAll('.export-title').forEach(el => {
+      el.style.fontSize = '44px';
+      el.style.lineHeight = '1.1';
     });
 
-    const dataURL = canvas.toDataURL("image/png");
+    clone.querySelectorAll('.export-sub').forEach(el => {
+      el.style.fontSize = '20px';
+      el.style.marginTop = '10px';
+    });
 
+    clone.querySelectorAll('.export-meta').forEach(el => {
+      el.style.gap = '10px';
+      el.style.margin = '18px 0 18px';
+    });
+
+    clone.querySelectorAll('.export-pill').forEach(el => {
+      el.style.fontSize = '18px';
+      el.style.padding = '10px 14px';
+    });
+
+    clone.querySelectorAll('.export-grid').forEach(el => {
+      el.style.gap = '10px';
+      el.style.flex = '1';
+      el.style.alignContent = 'start';
+    });
+
+    clone.querySelectorAll('.export-cell').forEach(el => {
+      el.style.minHeight = '0';
+      el.style.fontSize = '17px';
+      el.style.lineHeight = '1.25';
+      el.style.padding = '10px';
+      el.style.borderRadius = '18px';
+    });
+
+    clone.querySelectorAll('.export-footer').forEach(el => {
+      el.style.marginTop = '18px';
+      el.style.gap = '16px';
+    });
+
+    clone.querySelectorAll('.export-copy').forEach(el => {
+      el.style.fontSize = '18px';
+      el.style.lineHeight = '1.5';
+      el.style.maxWidth = '62%';
+    });
+
+    clone.querySelectorAll('.export-site').forEach(el => {
+      el.style.fontSize = '15px';
+      el.style.maxWidth = '280px';
+    });
+
+    offscreen.appendChild(clone);
+    document.body.appendChild(offscreen);
+
+    const canvas = await html2canvas(clone, {
+      backgroundColor: '#f4f7f1',
+      scale: 1,
+      width: 1000,
+      height: 1270,
+      useCORS: true,
+      logging: false
+    });
+
+    document.body.removeChild(offscreen);
+
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = 1080;
+    finalCanvas.height = 1350;
+
+    const ctx = finalCanvas.getContext('2d');
+    ctx.fillStyle = '#f4f7f1';
+    ctx.fillRect(0, 0, 1080, 1350);
+    ctx.drawImage(canvas, 40, 40, 1000, 1270);
+
+    const dataURL = finalCanvas.toDataURL('image/png');
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
-
-      // 手机上：新页面显示图片，长按保存
       const w = window.open();
       w.document.write(`
         <html>
-        <head>
-        <title>Bingo Export</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-        body{
-          margin:0;
-          background:#000;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          height:100vh;
-        }
-        img{
-          max-width:100%;
-          height:auto;
-        }
-        </style>
-        </head>
-        <body>
-        <img src="${dataURL}">
-        </body>
+          <head>
+            <title>Bingo Export</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body{
+                margin:0;
+                background:#000;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                min-height:100vh;
+              }
+              img{
+                max-width:100%;
+                height:auto;
+                display:block;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${dataURL}">
+          </body>
         </html>
       `);
-
-      showToast("长按图片即可保存");
-
+      showToast('长按图片即可保存');
     } else {
-
-      // 电脑端直接下载
       const link = document.createElement('a');
-
       const safeName = (cur().name || 'bingo').replace(/[\\/:*?"<>|]/g, '_');
-
-      link.download = `${safeName}_${getTodayKey()}.png`;
+      link.download = `${safeName}_${getTodayKey()}_4x5.png`;
       link.href = dataURL;
       link.click();
-
-      showToast("已导出图片");
-
+      showToast('已导出 4:5 竖图');
     }
 
   } catch (e) {
-
     console.error(e);
-    showToast("导出失败");
-
+    showToast('导出失败，请重试');
   }
 }
 
