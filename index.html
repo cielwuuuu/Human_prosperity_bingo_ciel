@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>人类丰荣 Bingo v2.3</title>
+  <title>人类丰荣 Bingo v2.4</title>
   <meta name="theme-color" content="#7ea68d" />
   <style>
     :root {
@@ -77,6 +77,53 @@
       box-shadow: var(--shadow);
       padding: 16px;
     }
+.notice-board {
+  margin: 14px 0 0;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
+.notice-head {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.notice-body {
+  padding-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.notice-body p {
+  margin: 6px 0;
+}
+
+.notice-arrow {
+  transition: transform .2s ease;
+}
+
+.notice-board.collapsed .notice-body {
+  display: none;
+}
+
+.notice-board.collapsed .notice-arrow {
+  transform: rotate(-90deg);
+}
 
     .folder-tabs {
       display: flex;
@@ -109,7 +156,7 @@
 
     .bingo-grid { display: grid; gap: 10px; }
     .item {
-      min-height: 74px;
+      min-height: 62px;
       aspect-ratio: 1 / 1;
       background: var(--card);
       border-radius: 18px;
@@ -117,7 +164,7 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      font-size: clamp(10px, 2.4vw, 15px);
+      font-size: clamp(9px, 2.2vw, 14px);
       line-height: 1.25;
       cursor: pointer;
       box-shadow: 0 8px 18px rgba(0,0,0,.06);
@@ -352,7 +399,8 @@
     }
 
     .export-card {
-      width: 100%;
+  width: 720px;
+  max-width: 100%;
       background:
         radial-gradient(circle at top left, rgba(174, 215, 191, .28), transparent 32%),
         radial-gradient(circle at bottom right, rgba(255, 219, 176, .24), transparent 28%),
@@ -489,7 +537,19 @@
         </div>
       </div>
     </section>
-
+<section class="notice-board" id="noticeBoard">
+  <button class="notice-head" id="noticeToggle" type="button" aria-expanded="true">
+    <span>📢 系统公告</span>
+    <span class="notice-arrow">▾</span>
+  </button>
+  <div class="notice-body" id="noticeBody">
+    <p><strong>v2.4</strong></p>
+    <p>修复了无法删除任务池文本的 bug。</p>
+    <p><strong>Tips：</strong></p>
+    <p>• 可以拖拽 tag 或 bingo 格进行编辑</p>
+    <p>• iOS 用户可以通过 Safari 打开网页，点击分享键，选择添加至主屏幕，以更便捷地访问本页面，体验接近小组件或 App</p>
+  </div>
+</section>
     <div class="layout">
       <section class="panel">
         <div class="folder-tabs" id="folderTabs"></div>
@@ -1082,8 +1142,8 @@
         await new Promise(resolve => setTimeout(resolve, 80));
 
         const canvas = await html2canvas(node, {
-          backgroundColor: null,
-          scale: 2,
+  backgroundColor: null,
+  scale: window.devicePixelRatio > 2 ? 2 : window.devicePixelRatio,
           useCORS: true,
           logging: false
         });
@@ -1367,7 +1427,12 @@
       refreshAchievements(true);
     }
 
-    document.getElementById('tagInput').onkeydown = (e) => e.key === 'Enter' && addTagFromInput();
+    document.getElementById('tagInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    addTagFromInput();
+  }
+});
 
     document.getElementById('editAllBtn').onclick = () => {
       document.getElementById('editorArea').value = cur().tasks.join('\n');
@@ -1409,9 +1474,19 @@
     document.getElementById('downloadExportBtn').onclick = downloadExportCard;
 
     document.getElementById('exportUsername').addEventListener('input', buildExportCard);
-    document.getElementById('exportNote').addEventListener('input', buildExportCard);
+document.getElementById('exportNote').addEventListener('input', buildExportCard);
 
-    draw();
+const noticeBoard = document.getElementById('noticeBoard');
+const noticeToggle = document.getElementById('noticeToggle');
+
+if (noticeBoard && noticeToggle) {
+  noticeToggle.addEventListener('click', () => {
+    const collapsed = noticeBoard.classList.toggle('collapsed');
+    noticeToggle.setAttribute('aria-expanded', String(!collapsed));
+  });
+}
+
+draw();
   </script>
 </body>
 </html>
