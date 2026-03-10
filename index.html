@@ -527,7 +527,7 @@
     <section class="hero">
       <div class="hero-top">
         <div>
-          <h1>🌿 人类丰荣 Bingo <span class="version">v2.3</span></h1>
+          <h1>🌿 人类丰荣 Bingo <span class="version">v2.4</span></h1>
           <div class="sub">增加生活的接触面。</div>
         </div>
         <div class="badge-row">
@@ -1133,34 +1133,69 @@
     }
 
     async function downloadExportCard() {
-      const node = document.getElementById('exportCard');
+  const node = document.getElementById('exportCard');
 
-      try {
-        showToast('正在生成图片...');
-        buildExportCard();
+  try {
+    showToast('正在生成图片...');
+    buildExportCard();
 
-        await new Promise(resolve => setTimeout(resolve, 80));
+    await new Promise(resolve => setTimeout(resolve, 120));
 
-        const canvas = await html2canvas(node, {
-  backgroundColor: null,
-  scale: window.devicePixelRatio > 2 ? 2 : window.devicePixelRatio,
-          useCORS: true,
-          logging: false
-        });
+    const canvas = await html2canvas(node, {
+      backgroundColor: null,
+      scale: Math.min(window.devicePixelRatio || 1, 2),
+      useCORS: true,
+      logging: false
+    });
 
-        const link = document.createElement('a');
-        const safeName = (cur().name || 'bingo').replace(/[\\/:*?"<>|]/g, '_');
-        const date = getTodayKey();
-        link.download = `${safeName}_${date}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+    const safeName = (cur().name || 'bingo').replace(/[\\/:*?"<>|]/g, '_');
+    const date = getTodayKey();
+    const filename = `${safeName}_${date}.png`;
 
-        showToast('已导出图片');
-      } catch (e) {
-        console.error(e);
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
         showToast('导出失败，请重试');
+        return;
       }
-    }
+
+      const file = new File([blob], filename, { type: 'image/png' });
+
+      // 手机上优先走系统分享
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: '人类丰荣 Bingo',
+            text: '导出我的 Bingo 卡片'
+          });
+          showToast('图片已生成');
+          return;
+        } catch (err) {
+          // 用户取消分享时不报错，走后备逻辑
+          console.log('share cancelled or failed', err);
+        }
+      }
+
+      // 电脑 / 不支持分享时，走下载
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      // iOS 有时不支持 download，就新开图片
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      showToast('图片已生成');
+    }, 'image/png');
+
+  } catch (e) {
+    console.error(e);
+    showToast('导出失败，请重试');
+  }
+}
 
     function renderSizePicker() {
       const wrap = document.getElementById('sizePicker');
